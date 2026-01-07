@@ -38,13 +38,46 @@
       margin-bottom: 12px;
     }
     .answers label {
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 6px;
       margin-bottom: 4px;
       cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 4px;
+      transition: background-color 0.15s, color 0.15s;
     }
     .answers input[type="radio"] {
       margin-right: 4px;
     }
+
+    /* 正解・不正解の視覚強調 */
+    .correct-answer {
+      background-color: #e8f5e9;   /* 薄い緑 */
+      color: #1b5e20;
+      font-weight: 600;
+      border: 1px solid #a5d6a7;
+    }
+    .wrong-answer {
+      background-color: #ffebee;   /* 薄い赤 */
+      color: #c62828;
+      border: 1px solid #ef9a9a;
+    }
+    .answer-badge {
+      font-size: 0.75rem;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    .badge-correct {
+      background-color: #2e7d32;
+      color: #fff;
+    }
+    .badge-wrong {
+      background-color: #c62828;
+      color: #fff;
+    }
+
     #explanation {
       margin-top: 12px;
       padding: 10px;
@@ -104,8 +137,7 @@
   </div>
 
   <script>
-    // 50問分のデータ
-    // correctIndex は 0〜3、全体として1〜4に偏らないようにばらしてある
+    // ここから下は前回と同じ 50問データ（内容は省略せずそのまま）
     const questions = [
       {
         id: 1,
@@ -625,25 +657,24 @@
 
     let currentIndex = 0;
 
-    const qNumberEl = document.getElementById("q-number");
-    const qMetaEl = document.getElementById("q-meta");
-    const questionEl = document.getElementById("question");
-    const answersEl = document.getElementById("answers");
+    const qNumberEl   = document.getElementById("q-number");
+    const qMetaEl     = document.getElementById("q-meta");
+    const questionEl  = document.getElementById("question");
+    const answersEl   = document.getElementById("answers");
     const explanationEl = document.getElementById("explanation");
     const showAnswerBtn = document.getElementById("show-answer");
-    const nextBtn = document.getElementById("next");
-    const shuffleBtn = document.getElementById("shuffle");
-    const resultEl = document.getElementById("result");
+    const nextBtn     = document.getElementById("next");
+    const shuffleBtn  = document.getElementById("shuffle");
+    const resultEl    = document.getElementById("result");
 
     function renderQuestion(index) {
       const q = questions[index];
       if (!q) return;
 
       qNumberEl.textContent = `Q${index + 1} / ${questions.length}`;
-      qMetaEl.textContent = q.type || "";
+      qMetaEl.textContent   = q.type || "";
       questionEl.textContent = q.text;
 
-      // 選択肢の描画（ラジオボタン）
       answersEl.innerHTML = "";
       explanationEl.style.display = "none";
       explanationEl.textContent = "";
@@ -653,13 +684,23 @@
         const id = `q${index}_choice${i}`;
         const label = document.createElement("label");
         const input = document.createElement("input");
+        const badge = document.createElement("span");
+        const text = document.createElement("span");
+
         input.type = "radio";
         input.name = "answer";
         input.value = i;
         input.id = id;
 
+        badge.className = "answer-badge";
+        badge.textContent = ""; // 初期はバッジ非表示
+
+        text.textContent = choice;
+
         label.appendChild(input);
-        label.appendChild(document.createTextNode(" " + choice));
+        label.appendChild(badge);
+        label.appendChild(text);
+
         answersEl.appendChild(label);
       });
     }
@@ -683,17 +724,26 @@
         return;
       }
 
-      const radios = answersEl.querySelectorAll("input[type=radio]");
-      radios.forEach((r, i) => {
-        const label = r.parentElement;
-        label.style.fontWeight = "normal";
-        label.style.color = "inherit";
+      const labels = answersEl.querySelectorAll("label");
+
+      labels.forEach((label, i) => {
+        label.classList.remove("correct-answer", "wrong-answer");
+        const badge = label.querySelector(".answer-badge");
+        badge.textContent = "";
+        badge.classList.remove("badge-correct", "badge-wrong");
+
         if (i === q.correctIndex) {
-          label.style.color = "#1b5e20"; // 正解：緑
-          label.style.fontWeight = "600";
+          // 正解の選択肢
+          label.classList.add("correct-answer");
+          badge.textContent = "✔ 正解";
+          badge.classList.add("badge-correct");
         }
+
         if (i === selected && i !== q.correctIndex) {
-          label.style.color = "#c62828"; // 誤答：赤
+          // 選んだが誤っていた選択肢
+          label.classList.add("wrong-answer");
+          badge.textContent = "✖";
+          badge.classList.add("badge-wrong");
         }
       });
 
@@ -701,7 +751,8 @@
       resultEl.textContent = isCorrect ? "正解です。" : "不正解です。";
 
       explanationEl.style.display = "block";
-      explanationEl.textContent = `【正解】${q.choices[q.correctIndex]}\n\n【解説】\n${q.explanation}`;
+      explanationEl.textContent =
+        `【正解】${q.choices[q.correctIndex]}\n\n【解説】\n${q.explanation}`;
     });
 
     nextBtn.addEventListener("click", () => {
